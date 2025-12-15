@@ -53,13 +53,14 @@ def train_model(
     # Check for gpu.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Create a validation set.
-    validation_mask = np.repeat(False, dataset.shape[0])
+    # Create a validation set only if validation is set
     if validation is not None:
         assert 0 < validation < 1
         validation_mask = np.random.random(dataset.shape[0]) < validation
-    data = Data(dataset[~validation_mask], dictionary, device)
-    data_val = Data(dataset[validation_mask], dictionary, device)
+        data = Data(dataset[~validation_mask], dictionary, device)
+        data_val = Data(dataset[validation_mask], dictionary, device)
+    else:
+        data = DataPrepared(dataset, dictionary, device)
 
     # Build model.
     model = DynamicBernoulliEmbeddingModel(
