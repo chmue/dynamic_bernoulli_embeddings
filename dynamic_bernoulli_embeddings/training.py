@@ -67,7 +67,7 @@ def train_model(
         len(data.dictionary),
         data.T,
         data.m_t,
-        dictionary,
+        data.dictionary,
         data.unigram_logits,
         **kwargs,
     )

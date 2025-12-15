@@ -196,7 +196,7 @@ class DataPrepared(Data):
             Context size.
         """
         self.cs = cs
-        self.dictionary = dictionary
+        self.dictionary = dictionary.token2id
         self.N = df.shape[0]
         self.device = device
         self.ctx = None
