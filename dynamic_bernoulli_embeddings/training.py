@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 
 from .embeddings import DynamicBernoulliEmbeddingModel
-from .preprocessing import Data
+from .preprocessing import DataPrepared
 
 
 def train_model(
