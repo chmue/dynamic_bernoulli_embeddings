@@ -198,6 +198,7 @@ class DataFromDict(Data):
         self.cs = cs
         self.dictionary = dictionary.token2id
         self.N = df.shape[0]
+        self.N = sum((len(t) for t in df.values()))
         self.device = device
         self.ctx = None
 
@@ -222,8 +223,8 @@ class DataFromDict(Data):
         # df_idx = pd.DataFrame({"time": df[time_col], "bow": bow_filtered})
         # df_idx = df_idx[bow_filtered.apply(len) > 1]
         m_t = {}
-        for t, group in df.groupby(time_col):
-            m_t[t] = group[bow_col].apply(len).sum()
+        for t, doc in df.items():
+            m_t[t] = sum((len(d) for d in doc))
         self.m_t = m_t
         self.T = len(m_t)
         self.df_idx = df
