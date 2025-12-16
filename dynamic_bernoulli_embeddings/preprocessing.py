@@ -211,10 +211,11 @@ class DataFromDict(Data):
         #     )
         # )
         # tfs = Counter(word for row in df[bow_col] for word in row)
+        tfs = Counter((word for time in texts_dict.values() for doc in time for word in doc))
 
         # Apply a scaling exponent of 3/4 as recommended to generate the unigram
         # distribution for negative sampling.
-        scaled_tfs = np.array([cnt for _, cnt in sorted(dictionary.cfs.items())]) ** 0.75
+        scaled_tfs = np.array([cnt for _, cnt in sorted(tfs.items())]) ** 0.75
         total = scaled_tfs.sum()
         self.unigram_logits = torch.tensor(
             [np.log(cnt / (total - cnt)) for cnt in scaled_tfs]
