@@ -171,7 +171,7 @@ class Data:
                 torch.tensor(batch_times).to(self.device),
             )
 
-class DataPrepared(Data):
+class DataFromDict(Data):
     """For large number of documents, do as little processing as possible."""
     def __init__(
         self, df, dictionary, device, time_col="time", bow_col="bow", m=100, cs=6
