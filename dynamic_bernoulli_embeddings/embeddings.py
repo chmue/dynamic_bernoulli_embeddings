@@ -72,9 +72,12 @@ class DynamicBernoulliEmbeddingModel(nn.Module):
             torch.Size([batch_size, self.negative_samples])
         )
         neg_samples = neg_samples + (times * self.V).reshape((-1, 1))
-        neg_samples = neg_samples.T.flatten()
-        context_flat = contexts_summed.repeat((self.negative_samples, 1))
-        eta_neg = (self.rho(neg_samples) * context_flat).sum(axis=1)
+        # neg_samples = neg_samples.T.flatten()
+        # context_flat = contexts_summed.repeat((self.negative_samples, 1))
+        # eta_neg = (self.rho(neg_samples) * context_flat).sum(axis=1)
+        neg_rho = self.rho(neg_samples)
+        context = contexts_summed.unsqueeze(1)
+        eta_neg = (neg_rho * context).sum(dim=-1)
         return (torch.log(1 - self.sigmoid(eta_neg) + 1e-7)).sum()
 
     def forward(self, targets, times, contexts, validate=False, dynamic=True):
