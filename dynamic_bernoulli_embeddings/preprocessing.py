@@ -199,7 +199,6 @@ class DataFromDict(Data):
         """
         self.cs = cs
         self.dictionary = dictionary.token2id
-        self.N = df.shape[0]
         self.N = sum((len(t) for t in df.values()))
         self.device = device
         self.ctx = None
