@@ -1,5 +1,7 @@
 """Implements batching logic"""
 from collections import Counter
+from itertools import chain
+from random import sample
 
 import numpy as np
 import pandas as pd
@@ -228,3 +230,62 @@ class DataFromDict(Data):
         self.m_t = m_t
         self.T = len(m_t)
         self.df_idx = df
+
+    def epoch(self, m):
+        """Generator over batches of the data
+
+        Parameters
+        ----------
+        m : int
+            Minibatch fractions. This means that there will be `m` total minibatches,
+            each with 1/`m` from each time partition.
+
+        Yields
+        ------
+        targets : `numpy.ndarray`
+            An array of word indices indicating the targets with shape (N,).
+        contexts : `numpy.ndarray`
+            An array of word indices indicating the contexts with shape
+            (N, context size * 2). This will contain -1's which indicate out of bounds
+            and should be handled downstream.
+        times : `numpy.ndarray`
+            An array indicating the time slices that each of the targets belongs to.
+            Shape (N,).
+        """
+        # Build separate generators for each of the time slices.
+        token_generators = {}
+        for t, txt in self.df_idx.items():
+            token_generators[t] = chain(*(txt[idx] for idx in sample(range(len(txt)), len(txt))))
+
+        # Build each batch by iterating over each time slice and appending the required
+        # number of targets.
+        while True:
+            batch_targets = []
+            batch_contexts = []
+            batch_times = []
+            for t, token_gen in token_generators.items():
+                targets = []
+                for word in token_gen:
+                    targets.append(word)
+                    # +1 to avoid a very small final batch due to rounding
+                    if len(targets) == self.m_t[t] // m + 1:
+                        break
+                targets = np.array(targets)
+                if len(targets) == 0:
+                    return  # We've reached the end.
+                mask, oob = self._context_mask(len(targets))
+                # Use mode="clip" with np.take so that the oob indices don't cause a
+                # failure. Set the oob word indices to -1.
+                contexts = np.take(targets, mask, mode="clip")
+                contexts[oob] = -1
+                batch_targets.append(targets)
+                batch_contexts.append(contexts)
+                batch_times.append(np.repeat(t, len(targets)))
+            batch_targets = np.concatenate(batch_targets)
+            batch_contexts = np.concatenate(batch_contexts)
+            batch_times = np.concatenate(batch_times)
+            yield (
+                torch.tensor(batch_targets).to(self.device),
+                torch.tensor(batch_contexts).to(self.device),
+                torch.tensor(batch_times).to(self.device),
+            )
