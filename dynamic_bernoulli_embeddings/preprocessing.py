@@ -211,7 +211,7 @@ class DataFromDict(Data):
         #     )
         # )
         # tfs = Counter(word for row in df[bow_col] for word in row)
-        tfs = Counter((word for time in texts_dict.values() for doc in time for word in doc))
+        tfs = Counter((word for time in df.values() for doc in time for word in doc))
 
         # Apply a scaling exponent of 3/4 as recommended to generate the unigram
         # distribution for negative sampling.
