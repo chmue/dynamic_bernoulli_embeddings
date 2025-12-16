@@ -198,7 +198,7 @@ class DataFromDict(Data):
             Context size.
         """
         self.cs = cs
-        self.dictionary = dictionary.token2id
+        self.dictionary = dictionary
         self.N = sum((len(t) for t in df.values()))
         self.device = device
         self.ctx = None
