@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 
 from .embeddings import DynamicBernoulliEmbeddingModel
-from .preprocessing import DataFromDict
+from .preprocessing import Data, DataFromDict
 
 
 def train_model(
@@ -60,7 +60,8 @@ def train_model(
         data = Data(dataset[~validation_mask], dictionary, device)
         data_val = Data(dataset[validation_mask], dictionary, device)
     else:
-        data = DataFromDict(dataset, dictionary, device)
+        # data = DataFromDict(dataset, dictionary, device)
+        data = Data(dataset, dictionary, device)
 
     # Build model.
     model = DynamicBernoulliEmbeddingModel(
