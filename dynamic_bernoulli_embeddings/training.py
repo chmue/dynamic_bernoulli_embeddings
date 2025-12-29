@@ -1,4 +1,6 @@
 """Functions for building the training loop"""
+from logging import getLogger
+
 import numpy as np
 import pandas as pd
 import torch
@@ -6,6 +8,7 @@ import torch
 from .embeddings import DynamicBernoulliEmbeddingModel
 from .preprocessing import Data, DataFromDict
 
+log = getLogger(__name__)
 
 def train_model(
     dataset,
@@ -80,6 +83,7 @@ def train_model(
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     loss_history = []
     for i in range(num_epochs + 1):
+        log.debug(f"Starting epoch {i}")
 
         # Initialize weights from the epoch 0 "burn in" period and reset the optimizer.
         if i == 1:
@@ -92,6 +96,7 @@ def train_model(
         pbar = tqdm(enumerate(data.epoch(m)), total=m)
         pbar.set_description(f"Epoch {i}")
         for j, (targets, contexts, times) in pbar:
+            log.debug(f"Running minibatch {j} of {m}")
             model.train()
             model.zero_grad()
             # The first epoch ignores time for initializing weights.

@@ -1,9 +1,12 @@
 """Contains embedding model implementation"""
+from logging import getLogger
+
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
 
+log = getLogger(__name__)
 
 class DynamicBernoulliEmbeddingModel(nn.Module):
     def __init__(
@@ -65,9 +68,11 @@ class DynamicBernoulliEmbeddingModel(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def L_pos(self, eta):
+        log.debug("Running model.L_pos()")
         return self.log_sigmoid(eta).sum()
 
     def L_neg(self, batch_size, times, contexts_summed):
+        log.debug("Running model.L_neg()")
         neg_samples = self.sampling_distribution.sample(
             torch.Size([batch_size, self.negative_samples])
         )
@@ -98,6 +103,7 @@ class DynamicBernoulliEmbeddingModel(nn.Module):
         L_neg
         L_prior
         """
+        log.debug("Running model.forward()")
         batch_size = targets.shape[0]
 
         # Since the embeddings are stacked, adjust the indices for the targets.
