@@ -60,8 +60,10 @@ def train_model(
         data = Data(dataset[~validation_mask], dictionary, device)
         data_val = Data(dataset[validation_mask], dictionary, device)
     else:
-        # data = DataFromDict(dataset, dictionary, device)
-        data = Data(dataset, dictionary, device)
+        if isinstance(dataset, dict):
+            data = DataFromDict(dataset, dictionary, device)
+        else:
+            data = Data(dataset, dictionary, device)
 
     # Build model.
     model = DynamicBernoulliEmbeddingModel(
