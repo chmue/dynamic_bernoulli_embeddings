@@ -1,10 +1,12 @@
 """Implements batching logic"""
 from collections import Counter
+from logging import getLogger
 
 import numpy as np
 import pandas as pd
 import torch
 
+log = getLogger(__name__)
 
 class Data:
     """Class for easy batched iteration over the dataset
@@ -50,11 +52,13 @@ class Data:
         self.ctx = None
 
         # Generate bow with token indices and remove all unknown words.
+        log.debug("Generating bow with token indices and remove all unknown words.")
         bow_filtered = df[bow_col].apply(
             lambda x: list(
                 filter(lambda x: x is not None, [dictionary.get(w, None) for w in x])
             )
         )
+        log.debug("Computing term frequency.")
         tfs = Counter(word for row in bow_filtered for word in row)
 
         # Apply a scaling exponent of 3/4 as recommended to generate the unigram
@@ -85,7 +89,7 @@ class Data:
         ----------
         N : int
             The length of the sequence
-            
+
         Returns
         -------
         ctx : `numpy.ndarray`
