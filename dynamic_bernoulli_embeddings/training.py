@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from .embeddings import DynamicBernoulliEmbeddingModel
+from .embeddings import DynamicBernoulliEmbeddingModel, DynamicBernoulliEmbeddingModelDev
 from .preprocessing import Data, DataFromDict
 
 log = getLogger(__name__)
@@ -69,7 +69,7 @@ def train_model(
             data = Data(dataset, dictionary, device)
 
     # Build model.
-    model = DynamicBernoulliEmbeddingModel(
+    model = DynamicBernoulliEmbeddingModelDev(
         len(data.dictionary),
         data.T,
         data.m_t,
