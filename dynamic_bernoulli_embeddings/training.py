@@ -64,7 +64,7 @@ def train_model(
             data = Data(dataset, dictionary, device)
 
     # Build model.
-    model = DynamicBernoulliEmbeddingModelDev(
+    model = DynamicBernoulliEmbeddingModel(
         len(data.dictionary),
         data.T,
         data.m_t,
