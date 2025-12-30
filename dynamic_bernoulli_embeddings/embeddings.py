@@ -157,7 +157,7 @@ class DynamicBernoulliEmbeddingModelDev(DynamicBernoulliEmbeddingModel):
         context_flat = contexts_summed.repeat((self.negative_samples, 1))
         eta_neg = (self.rho(neg_samples) * context_flat).sum(axis=1)
         # return (torch.log(1 - self.sigmoid(eta_neg) + 1e-7)).sum()
-        return nn.LogSigmoid(-eta_neg).sum()
+        return self.log_sigmoid(-eta_neg).sum()
         # neg_rho = self.rho(neg_samples)
         # context = contexts_summed.unsqueeze(1)
         # eta_neg = (neg_rho * context).sum(dim=-1)
