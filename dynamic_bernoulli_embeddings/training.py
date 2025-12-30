@@ -4,6 +4,7 @@ from logging import getLogger
 import numpy as np
 import pandas as pd
 import torch
+from tqdm.auto import tqdm
 
 from .embeddings import DynamicBernoulliEmbeddingModel, DynamicBernoulliEmbeddingModelDev
 from .preprocessing import Data, DataFromDict
@@ -46,12 +47,6 @@ def train_model(
     **kwargs
         Forwarded to init of `DynamicBernoulliEmbeddingModel`.
     """
-
-    # Use nicer tqdm progress bar if in a notebook.
-    if notebook:
-        from tqdm.notebook import tqdm
-    else:
-        from tqdm import tqdm
 
     # Check for gpu.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
