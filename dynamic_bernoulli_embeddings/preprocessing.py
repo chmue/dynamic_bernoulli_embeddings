@@ -293,3 +293,61 @@ class DataFromDict(Data):
                 torch.tensor(batch_contexts).to(self.device),
                 torch.tensor(batch_times).to(self.device),
             )
+
+class DataFromDictMult(DataFromDict):
+    """Create separate unigram distributions per time slice"""
+    def __init__(
+        self, df, dictionary, device, time_col="time", bow_col="bow", m=100, cs=6
+    ):
+        """
+        Parameters
+        ----------
+        df : `pd.DataFrame`
+            Pandas dataframe with at least two columns
+        dictionary : dict
+            Dictionary to use when generating indices from the token bag of words.
+        device : `torch.device`
+            Where to send the tensors for the batch.
+        time_col : str
+            Name of column corresponding to time buckets. Expected to be integers from
+            0 ... T where T is the total number of time buckets.
+        bow_col : str
+            Name of column corresponding to bag of words, which is just a list of words.
+        no_below : int
+            Drop any words appearing in fewer than this many rows.
+        cs : int
+            Context size.
+        """
+        self.cs = cs
+        self.dictionary = dictionary
+        self.N = sum((len(t) for t in df.values()))
+        self.device = device
+        self.ctx = None
+
+        # Create separate unigram distributions for negative sampling in each time slice
+        tfs = {}
+        for time, value in df.items():
+            tfs[time] = Counter((word for doc in value for word in doc))
+
+        # Apply a scaling exponent of 3/4 as recommended to generate the unigram
+        # distribution for negative sampling.
+        scaled_tfs = {}
+        for time, value in tfs.items():
+            scaled_tfs = np.array([cnt for _, cnt in sorted(value.items())]) ** 0.75
+
+        unigram_dist_raw = {}
+        for time in scaled_tfs.keys():
+            total = scaled_tfs[time].sum()
+            unigram_dist_raw[time] = [np.log(cnt / (total - cnt)) for cnt in scaled_tfs[time]]
+
+        self.unigram_logits = dict((time, torch.tensor(unigram_dist_raw[time]).to(device)) for time in unigram_dist_raw.keys())
+
+        # Token counts per timestep.
+        # df_idx = pd.DataFrame({"time": df[time_col], "bow": bow_filtered})
+        # df_idx = df_idx[bow_filtered.apply(len) > 1]
+        m_t = {}
+        for t, doc in df.items():
+            m_t[t] = sum((len(d) for d in doc))
+        self.m_t = m_t
+        self.T = len(m_t)
+        self.df_idx = df
