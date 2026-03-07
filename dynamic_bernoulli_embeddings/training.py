@@ -1,5 +1,6 @@
 """Functions for building the training loop"""
 from logging import getLogger
+from typing import Optional
 
 import numpy as np
 import pandas as pd
