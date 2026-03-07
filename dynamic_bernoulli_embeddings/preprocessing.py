@@ -328,7 +328,7 @@ class DataFromDictMult(DataFromDict):
         # distribution for negative sampling.
         scaled_tfs = {}
         for time, value in tfs.items():
-            scaled_tfs = np.array([cnt for _, cnt in sorted(value.items())]) ** 0.75
+            scaled_tfs[time] = np.array([cnt for _, cnt in sorted(value.items())]) ** 0.75
 
         unigram_dist_raw = {}
         for time in scaled_tfs.keys():
