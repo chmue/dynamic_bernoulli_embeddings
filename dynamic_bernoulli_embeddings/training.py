@@ -11,6 +11,85 @@ from .preprocessing import Data, DataFromDict
 
 log = getLogger(__name__)
 
+# def build_data() -> Data:
+#     pass
+#     DynamicBernoulliEmbeddingModelMult
+
+# def build_model(
+#     dataset: Union[pd.DataFrame, dict],
+#     dictionary,
+#     model_type: DynamicBernoulliEmbeddingModel = DynamicBernoulliEmbeddingModel,
+#     ) -> DynamicBernoulliEmbeddingModel:
+#     pass
+
+def train(
+    model: DynamicBernoulliEmbeddingModel,
+    training_data: Data,
+    validation_data: Optional[Data] = None,
+    validation_interval: Optional[int] = None,
+    minibatches: int = 300,
+    epochs: int = 10,
+    # negative_samples: int = 20,
+    learning_rate: float = 2e-3,
+    return_loss: bool = True
+    ) -> Optional[pd.DataFrame]:
+    """Train embedding `model` with `data`."""
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    loss_history = []
+    for i in range(epochs + 1):
+        log.debug(f"Starting epoch {i}")
+
+        # Initialize weights from the epoch 0 "burn in" period and reset the optimizer.
+        if i == 1:
+            with torch.no_grad():
+                model.rho.weight = torch.nn.Parameter(
+                    model.rho.weight[: model.V].repeat((model.T, 1))
+                )
+                optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+
+        pbar = tqdm(enumerate(data.epoch(minibatches)), total=minibatches)
+        pbar.set_description(f"Epoch {i}")
+        for j, (targets, contexts, times) in pbar:
+            log.debug(f"Running minibatch {j} of {minibatches}")
+            model.train()
+            model.zero_grad()
+            # The first epoch ignores time for initializing weights.
+            if i == 0:
+                times = torch.zeros_like(times)
+            loss, L_pos, L_neg, L_prior = model(targets, times, contexts, dynamic=i > 0)
+            loss.backward()
+            optimizer.step()
+
+            # Validation.
+            L_pos_val = None
+            if validation_data is not None and i > 0 and j % validation_interval == 0:
+                L_pos_val = 0
+                model.eval()
+                for val_targets, val_contexts, val_times in data_val.epoch(10):
+                    _, L_pos_val_batch, _, _ = model(
+                        val_targets, val_times, val_contexts, validate=True
+                    )
+                    L_pos_val += L_pos_val_batch.item()
+
+            # Collect loss history. Ignore the initialization epoch 0.
+            if i > 0:
+                batch_loss = (
+                    loss.item(),
+                    L_pos.item(),
+                    L_neg.item(),
+                    L_prior.item() if L_prior else None,
+                    L_pos_val,
+                )
+                loss_history.append(batch_loss)
+
+    loss_history = pd.DataFrame(
+        loss_history, columns=["loss", "l_pos", "l_neg", "l_prior", "l_pos_val"]
+    )
+    if return_loss:
+        return loss_history
+    # return model, loss_history
+
+
 def train_model(
     dataset,
     dictionary,

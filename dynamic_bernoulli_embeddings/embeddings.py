@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
 
+from .preprocessing import Data
+
 log = getLogger(__name__)
 
 class DynamicBernoulliEmbeddingModel(nn.Module):
@@ -161,3 +163,56 @@ class DynamicBernoulliEmbeddingModelDev(DynamicBernoulliEmbeddingModel):
         context = contexts_summed.unsqueeze(1)
         eta_neg = (neg_rho * context).sum(dim=-1)
         return self.log_sigmoid(-eta_neg).sum()
+
+
+class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
+    def __init__(
+        self,
+        data: Data,
+        k: int = 50,
+        lambda_: float = 1e4,
+        lambda_0: float = 1.0,
+        negative_samples: int = 20,
+    ):
+        """
+        Parameters
+        ----------
+        k : int
+            Embedding dimension.
+        lambda_ : int
+            Scaling factor on the time drift prior.
+        lambda_0 : int
+            Scaling factor on the embedding priors.
+        ns : int
+            Number of negative samples.
+        """
+        # super().__init__()
+        nn.Module().__init__()
+
+        # Set model parameters
+        self.k = k  # Embedding dimension.
+        self.lambda_ = lambda_  # Scaling factor on the time drift prior.
+        self.lambda_0 = lambda_0  # Scaling factor on the embedding priors.
+        # FIXME This negative samples could be set in the train() function
+        self.negative_samples = ns  # Number of negative samples.
+
+        # Setup sampling distribution
+        self.sampling_distribution = Categorical(logits=torch.tensor(data.unigram_logits_array))
+
+        # Copy information from `data`
+        self.dictionary = data.dictionary
+        self.dictionary_reverse = {v: k for k, v in data.dictionary.items()}
+        self.V = len(data.dictionary)  # Vocab size.
+        self.T = data.T  # Number of timesteps.
+        self.total_tokens = sum(data.tokens_per_time.values())  # Used for scaling factor for pseudo LL
+
+        # Embeddings parameters.
+        self.rho = nn.Embedding(V * T, k)  # Stacked dynamic embeddings
+        self.alpha = nn.Embedding(V, k)  # Time independent context embeddings
+        with torch.no_grad():
+            nn.init.normal_(self.rho.weight, 0, 0.01)
+            nn.init.normal_(self.alpha.weight, 0, 0.01)
+
+        # Transformations
+        self.log_sigmoid = nn.LogSigmoid()
+        self.sigmoid = nn.Sigmoid()
