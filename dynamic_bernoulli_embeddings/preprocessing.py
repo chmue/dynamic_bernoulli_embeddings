@@ -204,36 +204,31 @@ class DataFromDict(Data):
         self.cs = cs
         self.dictionary = dictionary
         self.N = sum((len(t) for t in df.values()))
+        self.n_documents = sum((len(t) for t in df.values()))
+
+        m_t = {}
+        for t, doc in df.items():
+            m_t[t] = sum((len(d) for d in doc))
+
+        self.m_t = m_t
+        self.T = len(m_t)
+
+        self.tokens_per_time = m_t
+        self.n_times = len(m_t)
+
+        self.df_idx = df
+        self.data = df
         self.device = device
         self.ctx = None
 
-
-        # # Generate bow with token indices and remove all unknown words.
-        # bow_filtered = df[bow_col].apply(
-        #     lambda x: list(
-        #         filter(lambda x: x is not None, [dictionary.get(w, None) for w in x])
-        #     )
-        # )
-        # tfs = Counter(word for row in df[bow_col] for word in row)
         tfs = Counter((word for time in df.values() for doc in time for word in doc))
 
         # Apply a scaling exponent of 3/4 as recommended to generate the unigram
         # distribution for negative sampling.
         scaled_tfs = np.array([cnt for _, cnt in sorted(tfs.items())]) ** 0.75
         total = scaled_tfs.sum()
-        self.unigram_logits = torch.tensor(
-            [np.log(cnt / (total - cnt)) for cnt in scaled_tfs]
-        ).to(device)
-
-        # Token counts per timestep.
-        # df_idx = pd.DataFrame({"time": df[time_col], "bow": bow_filtered})
-        # df_idx = df_idx[bow_filtered.apply(len) > 1]
-        m_t = {}
-        for t, doc in df.items():
-            m_t[t] = sum((len(d) for d in doc))
-        self.m_t = m_t
-        self.T = len(m_t)
-        self.df_idx = df
+        self.unigram_logits_array = np.log(scaled_tfs / (total - scaled_tfs))
+        self.unigram_logits = torch.tensor(self.unigram_logits_array).to(device)
 
     def epoch(self, m):
         """Generator over batches of the data
