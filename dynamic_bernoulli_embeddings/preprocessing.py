@@ -336,14 +336,6 @@ class DataFromDictMult(DataFromDict):
         self.unigram_logits = dict((time, torch.tensor(vec).to(device)) for time, vec in unigram_logits_raw.items())
         self.idx_sampling_to_overall = idx_map
 
-        unigram_dist_raw = {}
-        for time, vec in scaled_tfs.items():
-            total = vec.sum()
-            with np.errstate(divide="ignore"):
-                # Ignore divide by 0 warnings. -Inf will be handled correctly in the
-                # pytorch categorical sampling distribution downstream.
-                unigram_dist_raw[time] = np.log(vec / (total - vec))
-
         # Token counts per timestep.
         # df_idx = pd.DataFrame({"time": df[time_col], "bow": bow_filtered})
         # df_idx = df_idx[bow_filtered.apply(len) > 1]
