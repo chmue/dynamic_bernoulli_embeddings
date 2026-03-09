@@ -1,5 +1,5 @@
 """Implements batching logic"""
-from collections import Counter
+from collections import Counter, defaultdict
 from itertools import chain
 from logging import getLogger
 from random import sample
@@ -321,21 +321,29 @@ class DataFromDictMult(DataFromDict):
 
         # Create separate unigram distributions for negative sampling in each time slice
         tfs = {}
-        for time, value in df.items():
-            tfs[time] = Counter((word for doc in value for word in doc))
+        for time, docs in df.items():
+            tfs[time] = Counter((word for doc in docs for word in doc))
+
+        # Some words can be missing from time periods; set them to 0 manually to
+        # preserve the right ordering of indices when sampling.
+        counts = defaultdict(list)
+        for time, cntr in tfs.items():
+            for token in dictionary.keys():
+                counts[time].append(cntr[token])
 
         # Apply a scaling exponent of 3/4 as recommended to generate the unigram
         # distribution for negative sampling.
-        scaled_tfs = {}
-        for time, value in tfs.items():
-            scaled_tfs[time] = np.array([cnt for _, cnt in sorted(value.items())]) ** 0.75
+        scaled_tfs = dict((time, np.array(value) ** 0.75) for time, value in counts.items())
 
         unigram_dist_raw = {}
-        for time in scaled_tfs.keys():
-            total = scaled_tfs[time].sum()
-            unigram_dist_raw[time] = [np.log(cnt / (total - cnt)) for cnt in scaled_tfs[time]]
+        for time, vec in scaled_tfs.items():
+            total = vec.sum()
+            with np.errstate(divide="ignore"):
+                # Ignore divide by 0 warnings. -Inf will be handled correctly in the
+                # pytorch categorical sampling distribution downstream.
+                unigram_dist_raw[time] = np.log(vec / (total - vec))
 
-        self.unigram_logits = dict((time, torch.tensor(unigram_dist_raw[time]).to(device)) for time in unigram_dist_raw.keys())
+        self.unigram_logits = dict((time, torch.tensor(vec).to(device)) for time, vec in unigram_dist_raw.items())
 
         # Token counts per timestep.
         # df_idx = pd.DataFrame({"time": df[time_col], "bow": bow_filtered})
