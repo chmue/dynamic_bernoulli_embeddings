@@ -206,7 +206,8 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
         # Copy information from `data`
         self.dictionary = data.dictionary
         self.dictionary_reverse = {v: k for k, v in data.dictionary.items()}
-        self.V = len(data.dictionary)  # Vocab size.
+        V = len(data.dictionary) # Vocab size.
+        self.V = V  # Vocab size.
         self.T = data.T  # Number of timesteps.
         # FIXME Remove once rewrite of classes is complete
         if hasattr(data, "tokens_per_time"):
@@ -215,8 +216,8 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
             self.total_tokens = sum(data.m_t.values())  # Used for scaling factor for pseudo LL
 
         # Embeddings parameters.
-        self.rho = nn.Embedding(self.V * self.T, k)  # Stacked dynamic embeddings
-        self.alpha = nn.Embedding(self.V, k)  # Time independent context embeddings
+        self.rho = nn.Embedding(V *  data.T, k)  # Stacked dynamic embeddings
+        self.alpha = nn.Embedding(V, k)  # Time independent context embeddings
         with torch.no_grad():
             nn.init.normal_(self.rho.weight, 0, 0.01)
             nn.init.normal_(self.alpha.weight, 0, 0.01)
