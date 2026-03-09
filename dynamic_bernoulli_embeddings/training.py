@@ -32,10 +32,10 @@ def train(
     epochs: int = 10,
     # negative_samples: int = 20,
     learning_rate: float = 2e-3,
-    return_loss: bool = True
+    return_loss: bool = True,
     ) -> Optional[pd.DataFrame]:
     """Train embedding `model` with `data`."""
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     loss_history = []
     for i in range(epochs + 1):
         log.debug(f"Starting epoch {i}")
@@ -46,9 +46,9 @@ def train(
                 model.rho.weight = torch.nn.Parameter(
                     model.rho.weight[: model.V].repeat((model.T, 1))
                 )
-                optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+                optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-        pbar = tqdm(enumerate(data.epoch(minibatches)), total=minibatches)
+        pbar = tqdm(enumerate(training_data.epoch(minibatches)), total=minibatches)
         pbar.set_description(f"Epoch {i}")
         for j, (targets, contexts, times) in pbar:
             log.debug(f"Running minibatch {j} of {minibatches}")
@@ -66,7 +66,7 @@ def train(
             if validation_data is not None and i > 0 and j % validation_interval == 0:
                 L_pos_val = 0
                 model.eval()
-                for val_targets, val_contexts, val_times in data_val.epoch(10):
+                for val_targets, val_contexts, val_times in validation_data.epoch(10):
                     _, L_pos_val_batch, _, _ = model(
                         val_targets, val_times, val_contexts, validate=True
                     )
@@ -88,7 +88,6 @@ def train(
     )
     if return_loss:
         return loss_history
-    # return model, loss_history
 
 
 def train_model(
