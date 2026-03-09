@@ -308,15 +308,10 @@ class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
     def L_neg(self, batch_size, times, contexts_summed):
         log.debug("Running model.L_neg()")
 
-        neg_samples = []
-        for time in times:
-            neg_sample = self.sampling_distribution[time.item()].sample(
-                torch.Size([self.negative_samples])
-            )
-            neg_samples.append(neg_sample)
-
-        # Concatenate all negative samples into a single tensor
-        neg_samples = torch.cat(neg_samples, dim=0)
+        neg_samples = torch.stack([
+            self.precomputed_neg_samples[time.item()]
+            for time in times
+        ], dim=0)
 
         neg_samples = neg_samples + (times * self.V).reshape((-1, 1))
 
