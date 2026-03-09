@@ -164,28 +164,6 @@ class DynamicBernoulliEmbeddingModelDev(DynamicBernoulliEmbeddingModel):
         eta_neg = (neg_rho * context).sum(dim=-1)
         return self.log_sigmoid(-eta_neg).sum()
 
-class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
-    def L_neg(self, batch_size, times, contexts_summed):
-        log.debug("Running model.L_neg()")
-
-        neg_samples = []
-        for time in times:
-            neg_sample = self.sampling_distribution[time].sample(
-                torch.Size([self.negative_samples])
-            )
-            neg_samples.append(neg_sample)
-
-        # Concatenate all negative samples into a single tensor
-        neg_samples = torch.cat(neg_samples, dim=0)
-
-        neg_samples = neg_samples + (times * self.V).reshape((-1, 1))
-
-        neg_rho = self.rho(neg_samples)
-        context = contexts_summed.unsqueeze(1)
-        eta_neg = (neg_rho * context).sum(dim=-1)
-        # eta_neg = (self.rho(neg_samples) * contexts_summed.unsqueeze(1)).sum(dim=-1)
-        return self.log_sigmoid(-eta_neg).sum()
-
 
 class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
     def __init__(
@@ -242,3 +220,26 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
         # Transformations
         self.log_sigmoid = nn.LogSigmoid()
         self.sigmoid = nn.Sigmoid()
+
+
+class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
+    def L_neg(self, batch_size, times, contexts_summed):
+        log.debug("Running model.L_neg()")
+
+        neg_samples = []
+        for time in times:
+            neg_sample = self.sampling_distribution[time].sample(
+                torch.Size([self.negative_samples])
+            )
+            neg_samples.append(neg_sample)
+
+        # Concatenate all negative samples into a single tensor
+        neg_samples = torch.cat(neg_samples, dim=0)
+
+        neg_samples = neg_samples + (times * self.V).reshape((-1, 1))
+
+        neg_rho = self.rho(neg_samples)
+        context = contexts_summed.unsqueeze(1)
+        eta_neg = (neg_rho * context).sum(dim=-1)
+        # eta_neg = (self.rho(neg_samples) * contexts_summed.unsqueeze(1)).sum(dim=-1)
+        return self.log_sigmoid(-eta_neg).sum()
