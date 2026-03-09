@@ -325,7 +325,7 @@ class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
                 torch.Size([times_count[time], self.negative_samples])
             )
             # Map time-specific samples to overall index positions
-            sample_global = self.sampling_idx_to_idx[time][sample_raw]
+            sample_global = self.sampling_map[time][sample_raw]
 
             # Find the positions in `times` corresponding to this timestep
             indices = (times == time).nonzero(as_tuple=True)[0]
