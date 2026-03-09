@@ -215,8 +215,8 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
             self.total_tokens = sum(data.m_t.values())  # Used for scaling factor for pseudo LL
 
         # Embeddings parameters.
-        self.rho = nn.Embedding(V * T, k)  # Stacked dynamic embeddings
-        self.alpha = nn.Embedding(V, k)  # Time independent context embeddings
+        self.rho = nn.Embedding(self.V * self.T, k)  # Stacked dynamic embeddings
+        self.alpha = nn.Embedding(self.V, k)  # Time independent context embeddings
         with torch.no_grad():
             nn.init.normal_(self.rho.weight, 0, 0.01)
             nn.init.normal_(self.alpha.weight, 0, 0.01)
