@@ -216,7 +216,7 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
         self.lambda_ = lambda_  # Scaling factor on the time drift prior.
         self.lambda_0 = lambda_0  # Scaling factor on the embedding priors.
         # FIXME This negative samples could be set in the train() function
-        self.negative_samples = ns  # Number of negative samples.
+        self.negative_samples = negative_samples  # Number of negative samples.
 
         # Setup sampling distribution
         self.sampling_distribution = Categorical(logits=torch.tensor(data.unigram_logits_array))
