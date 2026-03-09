@@ -1,4 +1,5 @@
 """Contains embedding model implementation"""
+from collections import Counter
 from logging import getLogger
 
 import numpy as np
