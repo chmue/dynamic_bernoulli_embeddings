@@ -310,7 +310,7 @@ class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
 
         neg_samples = []
         for time in times:
-            neg_sample = self.sampling_distribution[time].sample(
+            neg_sample = self.sampling_distribution[time.item()].sample(
                 torch.Size([self.negative_samples])
             )
             neg_samples.append(neg_sample)
