@@ -164,7 +164,7 @@ class DynamicBernoulliEmbeddingModelDev(DynamicBernoulliEmbeddingModel):
         eta_neg = (neg_rho * context).sum(dim=-1)
         return self.log_sigmoid(-eta_neg).sum()
 
-class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModel):
+class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
     def L_neg(self, batch_size, times, contexts_summed):
         log.debug("Running model.L_neg()")
 
@@ -205,7 +205,7 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
             Scaling factor on the time drift prior.
         lambda_0 : int
             Scaling factor on the embedding priors.
-        ns : int
+        negative_samples : int
             Number of negative samples.
         """
         # super().__init__()
@@ -219,7 +219,11 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
         self.negative_samples = negative_samples  # Number of negative samples.
 
         # Setup sampling distribution
-        self.sampling_distribution = Categorical(logits=torch.tensor(data.unigram_logits_array))
+        # FIXME data could have property "multisampling" or something for this check
+        if data.unigram_logits is dict:
+            self.sampling_distribution = {(time, Categorical(logits=dist)) for time, dist in unigram_logits.items()}
+        else:
+            self.sampling_distribution = Categorical(logits=torch.tensor(data.unigram_logits))
 
         # Copy information from `data`
         self.dictionary = data.dictionary
