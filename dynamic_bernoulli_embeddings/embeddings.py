@@ -213,7 +213,7 @@ class DynamicBernoulliEmbeddingModelNew(nn.Module):
             self.total_tokens = sum(data.tokens_per_time.values())  # Used for scaling factor for pseudo LL
         else:
             self.total_tokens = sum(data.m_t.values())  # Used for scaling factor for pseudo LL
-
+        self.sampling_map = self.idx_sampling_to_overall
         # Embeddings parameters.
         self.rho = nn.Embedding(V *  data.T, k)  # Stacked dynamic embeddings
         self.alpha = nn.Embedding(V, k)  # Time independent context embeddings
@@ -308,10 +308,27 @@ class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
     def L_neg(self, batch_size, times, contexts_summed):
         log.debug("Running model.L_neg()")
 
-        neg_samples = torch.stack([
-            self.sampling_distribution[time.item()].sample(torch.Size([self.negative_samples]))
-            for time in times
-        ], dim=0)
+        # Allocate empty output tensor
+        neg_samples = torch.zeros((batch_size, self.negative_samples), device=times.device)
+
+        # Determine how many samples are need per time period
+        times_count = Counter(times.tolist())
+
+        # Iterate over all timesteps and sample negative examples
+        for time in range(self.T):
+            if not time in times_count:
+                continue
+            # Sample everything for this time period
+            sample_raw = self.sampling_distribution[time].sample(
+                torch.Size([times_count[time], self.negative_samples])
+            )
+            # Map time-specific samples to overall index positions
+            sample_global = self.sampling_idx_to_idx[time][sample_raw]
+
+            # Find the positions in `times` corresponding to this timestep
+            indices = (times == time).nonzero(as_tuple=True)[0]
+
+            neg_samples[indices] = sample_global
 
         neg_samples = neg_samples + (times * self.V).reshape((-1, 1))
 
