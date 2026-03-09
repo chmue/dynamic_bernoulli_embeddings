@@ -198,7 +198,7 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
 
         # Setup sampling distribution
         # FIXME data could have property "multisampling" or something for this check
-        if data.unigram_logits is dict:
+        if isinstance(data.unigram_logits, dict):
             self.sampling_distribution = {(time, Categorical(logits=dist)) for time, dist in unigram_logits.items()}
         else:
             self.sampling_distribution = Categorical(logits=torch.tensor(data.unigram_logits))
