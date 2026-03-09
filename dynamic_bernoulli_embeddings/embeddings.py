@@ -309,7 +309,7 @@ class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
         log.debug("Running model.L_neg()")
 
         neg_samples = torch.stack([
-            self.precomputed_neg_samples[time.item()]
+            self.sampling_distribution[time.item()].sample(torch.Size([self.negative_samples]))
             for time in times
         ], dim=0)
 
