@@ -208,7 +208,11 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
         self.dictionary_reverse = {v: k for k, v in data.dictionary.items()}
         self.V = len(data.dictionary)  # Vocab size.
         self.T = data.T  # Number of timesteps.
-        self.total_tokens = sum(data.tokens_per_time.values())  # Used for scaling factor for pseudo LL
+        # FIXME Remove once rewrite of classes is complete
+        if hasattr(data, "tokens_per_time"):
+            self.total_tokens = sum(data.tokens_per_time.values())  # Used for scaling factor for pseudo LL
+        else:
+            self.total_tokens = sum(data.m_t.values())  # Used for scaling factor for pseudo LL
 
         # Embeddings parameters.
         self.rho = nn.Embedding(V * T, k)  # Stacked dynamic embeddings
