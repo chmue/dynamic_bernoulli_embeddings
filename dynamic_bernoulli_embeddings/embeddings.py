@@ -213,7 +213,8 @@ class DynamicBernoulliEmbeddingModelNew(nn.Module):
             self.total_tokens = sum(data.tokens_per_time.values())  # Used for scaling factor for pseudo LL
         else:
             self.total_tokens = sum(data.m_t.values())  # Used for scaling factor for pseudo LL
-        self.sampling_map = self.idx_sampling_to_overall
+        if hasattr(data, "idx_sampling_to_overall"):
+            self.sampling_map = data.idx_sampling_to_overall
         # Embeddings parameters.
         self.rho = nn.Embedding(V *  data.T, k)  # Stacked dynamic embeddings
         self.alpha = nn.Embedding(V, k)  # Time independent context embeddings
