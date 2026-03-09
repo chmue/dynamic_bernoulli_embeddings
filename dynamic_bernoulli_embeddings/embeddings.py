@@ -165,7 +165,7 @@ class DynamicBernoulliEmbeddingModelDev(DynamicBernoulliEmbeddingModel):
         return self.log_sigmoid(-eta_neg).sum()
 
 
-class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
+class DynamicBernoulliEmbeddingModelNew(nn.Module):
     def __init__(
         self,
         data: Data,
@@ -186,8 +186,7 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
         negative_samples : int
             Number of negative samples.
         """
-        # super().__init__()
-        nn.Module().__init__()
+        super().__init__()
 
         # Set model parameters
         self.k = k  # Embedding dimension.
@@ -225,6 +224,84 @@ class DynamicBernoulliEmbeddingModelNew(DynamicBernoulliEmbeddingModel):
         # Transformations
         self.log_sigmoid = nn.LogSigmoid()
         self.sigmoid = nn.Sigmoid()
+
+    def L_pos(self, eta):
+        log.debug("Running model.L_pos()")
+        return self.log_sigmoid(eta).sum()
+
+    def L_neg(self, batch_size, times, contexts_summed):
+        log.debug("Running model.L_neg()")
+        neg_samples = self.sampling_distribution.sample(
+            torch.Size([batch_size, self.negative_samples])
+        )
+        neg_samples = neg_samples + (times * self.V).reshape((-1, 1))
+        neg_rho = self.rho(neg_samples)
+        context = contexts_summed.unsqueeze(1)
+        eta_neg = (neg_rho * context).sum(dim=-1)
+        return self.log_sigmoid(-eta_neg).sum()
+
+    def forward(self, targets, times, contexts, validate=False, dynamic=True):
+        """Forward pass of the model
+
+        Parameters
+        ----------
+        targets : (batch_size,)
+        times : (batch_size,)
+        contexts : (batch_size, 2 * context_size)
+        dynamic : bool
+            Indicates whether to include the drift component of the loss.
+
+        Returns
+        -------
+        loss
+        L_pos
+        L_neg
+        L_prior
+        """
+        log.debug("Running model.forward()")
+        batch_size = targets.shape[0]
+
+        # Since the embeddings are stacked, adjust the indices for the targets.
+        # In other words, word `i` in time slice `j` would be at position
+        # `j * V + i` in the embedding matrix where V is the vocab size.
+        targets_adjusted = times * self.V + targets
+
+        # -1 indicates out of bounds for the context word, so mask these out so
+        # they don't contribute to the context sum.
+        context_mask = contexts == -1
+        contexts[context_mask] = 0
+        contexts = self.alpha(contexts)
+        contexts[context_mask] = 0
+        contexts_summed = contexts.sum(axis=1)
+        eta = (self.rho(targets_adjusted) * contexts_summed).sum(axis=1)
+
+        # Loss
+        loss, L_pos, L_neg, L_prior = None, None, None, None
+
+        L_pos = self.L_pos(eta)
+        if not validate:
+            L_neg = self.L_neg(batch_size, times, contexts_summed)
+            loss = (self.total_tokens / batch_size) * (L_pos + L_neg)
+            L_prior = -self.lambda_0 / 2 * (self.alpha.weight ** 2).sum()
+            L_prior += -self.lambda_0 / 2 * (self.rho.weight[0] ** 2).sum()
+            if dynamic:
+                rho_trans = self.rho.weight.reshape((self.T, self.V, self.k))
+                L_prior += (
+                    -self.lambda_ / 2 * ((rho_trans[1:] - rho_trans[:-1]) ** 2).sum()
+                )
+            loss += L_prior
+            loss = -loss
+
+        return loss, L_pos, L_neg, L_prior
+
+    def get_embeddings(self):
+        """Gets trained embeddings and reshapes them into (T, V, k)"""
+        embeddings = (
+            self.rho.cpu()
+            .weight.data.reshape((self.T, len(self.dictionary), self.k))
+            .numpy()
+        )
+        return embeddings
 
 
 class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
