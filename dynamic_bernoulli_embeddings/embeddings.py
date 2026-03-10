@@ -311,7 +311,7 @@ class DynamicBernoulliEmbeddingModelMult(DynamicBernoulliEmbeddingModelNew):
         log.debug("Running model.L_neg()")
 
         # Allocate empty output tensor
-        neg_samples = torch.zeros((batch_size, self.negative_samples), device=times.device)
+        neg_samples = torch.zeros((batch_size, self.negative_samples), dtype=torch.long, device=times.device)
 
         # Determine how many samples are need per time period
         times_count = Counter(times.tolist())
