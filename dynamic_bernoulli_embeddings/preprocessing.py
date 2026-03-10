@@ -334,7 +334,7 @@ class DataFromDictMult(DataFromDict):
             assert len(unigram_logits_raw[time]) == len(idx_map[time])
 
         self.unigram_logits = dict((time, torch.tensor(vec).to(device)) for time, vec in unigram_logits_raw.items())
-        self.idx_sampling_to_overall = idx_map
+        self.idx_sampling_to_overall = {time: torch.tensor(value).to(device) for time, value in idx_map.items()}
 
         # Token counts per timestep.
         # df_idx = pd.DataFrame({"time": df[time_col], "bow": bow_filtered})
